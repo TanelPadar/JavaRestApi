@@ -1,15 +1,15 @@
 package com.example.padar.model;
 
 public class User {
-    private int user_id;
+    private int id;
     private String name;
-    private String surname;
+    private String username;
     private String email;
 
-    public User(int user_id, String name, String surname, String email) {
-        this.user_id = user_id;
+    public User(int id, String name, String username, String email) {
+        this.id = id;
         this.name = name;
-        this.surname = surname;
+        this.username = username;
         this.email = email;
     }
 
@@ -17,12 +17,12 @@ public class User {
 
     }
 
-    public int getUser_id() {
-        return user_id;
+    public int getid() {
+        return id;
     }
 
-    public void setUser_id(int user_id) {
-        this.user_id = user_id;
+    public void setid(int id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -33,12 +33,12 @@ public class User {
         this.name = name;
     }
 
-    public String getSurname() {
-        return surname;
+    public String getusername() {
+        return username;
     }
 
-    public void setSurname(String surname) {
-        this.surname = surname;
+    public void setusername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {

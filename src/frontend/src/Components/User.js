@@ -33,9 +33,9 @@ function EditModal({user}) {
         const saveUser = () => {
 
         const savingUser = {
-            "user_id":user.user_id,
+            "id":user.id,
             "name":fname,
-            "surname":lname,
+            "username":lname,
             "email": email
         }
         axios.put('http://localhost:8080/users', savingUser)
@@ -60,7 +60,7 @@ function EditModal({user}) {
                         <label htmlFor="fname" >First name:</label>
                         <input type="text" id="fname" name="fname"  value={fname} onChange={handleChange} placeholder={user.name}></input><br></br>
                         <label htmlFor="lname" >Last name:</label>
-                        <input type="text" id="lname" name="lname" value={lname} onChange={handleChange} placeholder={user.surname}></input><br></br>
+                        <input type="text" id="lname" name="lname" value={lname} onChange={handleChange} placeholder={user.username}></input><br></br>
                         <label htmlFor="email" >email:</label>
                         <input type="text" id="email" name="email" value={email} onChange={handleChange} placeholder={user.email} ></input>
                     </form>
@@ -112,7 +112,7 @@ function AddUserModal() {
     const addUser = () => {
         const savingUser = {
             "name":fname,
-            "surname":lname,
+            "username":lname,
             "email": email
         }
         axios.post('http://localhost:8080/users', savingUser)
@@ -181,12 +181,12 @@ export default class User extends React.Component{
             })
     }
 
-    deleteUser(user_id) {
+    deleteUser(id) {
 
-        axios.delete('http://localhost:8080/users/delete/' + user_id)
+        axios.delete('http://localhost:8080/users/delete/' + id)
             .then(() => {
                 let users = this.state.users
-                users = users.filter(user => user.user_id !== user_id)
+                users = users.filter(user => user.id !== id)
                 this.setState({users:users})
             })
 
@@ -202,10 +202,10 @@ export default class User extends React.Component{
                             return (
                                 < >
                                     <div class="userList">
-                                        <li key={user.user_id}><b>Eesnimi:</b> {user.name}  <b>Perekonnanimi:</b> {user.surname} <b>email:</b> {user.email}</li>
+                                        <li key={user.id}><b>Eesnimi:</b> {user.name}  <b>Perekonnanimi:</b> {user.username} <b>email:</b> {user.email}</li>
                                         <div className="buttonsForUser">
                                             <EditModal user={user} />
-                                            <button class="btn-danger btn btn-primay mx-2 " onClick={()=>this.deleteUser(user.user_id)}>Remove</button>
+                                            <button class="btn-danger btn btn-primay mx-2 " onClick={()=>this.deleteUser(user.id)}>Remove</button>
                                             <AddUserModal />
                                         </div>
 
