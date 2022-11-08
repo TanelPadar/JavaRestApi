@@ -1,0 +1,24 @@
+.userList {
+    display: flex;
+    align-items: center;
+
+
+}
+
+.userList li {
+    width:95%;
+    border:solid;
+
+}
+
+ul {
+    list-style-type: none;
+}
+
+.buttonsForUser {
+    display: flex;
+    margin-left: 20px;
+}
+
+
+
