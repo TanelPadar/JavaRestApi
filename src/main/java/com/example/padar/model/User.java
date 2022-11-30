@@ -1,10 +1,16 @@
 package com.example.padar.model;
 
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class User {
     private int id;
     private String name;
     private String username;
     private String email;
+
+
 
     public User(int id, String name, String username, String email) {
         this.id = id;
@@ -48,4 +54,5 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
 }
