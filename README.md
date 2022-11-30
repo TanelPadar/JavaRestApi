@@ -11,6 +11,11 @@ In the terminal navigate to src/frontend and type:
 To run Spring Backend
 In your IDE run PadarApplication.java
 
+
+**Documentation**
+![Alt text](pildid/swagger_documentation?raw=true "Optional Title")
+Documentation path is on: http://localhost:8080/swagger-ui/index.html
+
 ### Screenshots
 ![Alt text](pildid/Tanel_Padar.png?raw=true "Optional Title")
 
