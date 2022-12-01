@@ -38,7 +38,7 @@ public class UserDao {
     public void addUser(User user) {
         jdbcTemplate.update(SQL_MAKE_NEW_USER,
                 user.getName(),
-                user.getusername(),
+                user.getUsername(),
                 user.getEmail());
     }
 
@@ -46,7 +46,7 @@ public class UserDao {
     public User updateUser(User user,int id) {
         jdbcTemplate.update(SQL_UPDATE_USER,
                 user.getName(),
-                user.getusername(),
+                user.getUsername(),
                 user.getEmail(),
                 id);
         return user;

@@ -4,8 +4,13 @@ import com.example.padar.dao.UserDao;
 import com.example.padar.model.Kasutajad;
 import com.example.padar.model.User;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -28,7 +33,18 @@ public class UserController {
 
     @GetMapping("/users")
     @Operation(
-            tags = {"Get all users"}
+            tags = {"Get all users"},
+            responses = {@ApiResponse(responseCode = "200",
+                    content = @Content(schema =
+                    @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value="{\n" +
+                                    "        \"id\": 586,\n" +
+                                    "        \"name\": \"tanel\",\n" +
+                                    "        \"username\": \"tanel\",\n" +
+                                    "        \"email\": \"tanel\"\n" +
+                                    "    }")}),
+                    description = "Success Response."),
+            }
     )
     public List<User> getAllUsers() {
         template.convertAndSend("/topic/get" , new Kasutajad(UserDao.getAllUsers()));
@@ -38,7 +54,18 @@ public class UserController {
 
     @PostMapping("/users")
     @Operation(
-            tags = {"Create new user"}
+            tags = {"Create new user"},
+            responses = {@ApiResponse(responseCode = "200",
+            content = @Content(schema =
+            @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = {@ExampleObject(name = "", value="{\n" +
+                            "        \"id\": 586,\n" +
+                            "        \"name\": \"tanel\",\n" +
+                            "        \"username\": \"tanel\",\n" +
+                            "        \"email\": \"tanel\"\n" +
+                            "    }")}),
+            description = "Success Response."),
+    }
     )
     public List<User> addUsers(@RequestBody User user){
         UserDao.addUser(user);
@@ -49,7 +76,18 @@ public class UserController {
 
     @PutMapping("/users/{id}")
     @Operation(
-            tags = {"Edit existing user"}
+            tags = {"Edit existing user"},
+            responses = {@ApiResponse(responseCode = "200",
+                    content = @Content(schema =
+                    @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value="{\n" +
+                                    "        \"id\": 586,\n" +
+                                    "        \"name\": \"tanel\",\n" +
+                                    "        \"username\": \"tanel\",\n" +
+                                    "        \"email\": \"tanel\"\n" +
+                                    "    }")}),
+                    description = "Success Response."),
+            }
     )
     public List<User> editUsers(@PathVariable int id,@RequestBody User user){
         UserDao.updateUser(user,id);
@@ -59,12 +97,20 @@ public class UserController {
 
     @DeleteMapping("/users/{id}")
     @Operation(
-            tags = {"Delete existing user"}
+            tags = {"Delete existing user"},
+            description = "Deletes an existing `User`",
+            responses = {@ApiResponse(responseCode = "200",
+                    content = @Content(schema =
+                    @Schema(implementation = User.class), mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value = "{}")}),
+                    description = "Success Response.")
+            }
     )
-    public String deleteUsersById(@PathVariable int id){
+    public ResponseEntity<String> deleteUsersById(@PathVariable int id){
         UserDao.deleteUserById(id);
         template.convertAndSend("/topic/delete", id);
-        return "{}";
+        return ResponseEntity.ok("{}");
+
     }
 
     @SendTo("/topic/get")
