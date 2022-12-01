@@ -5,10 +5,13 @@ INSERT INTO "user" VALUES(1,'Padar','Tanel','Tanel@Padar.com')
 COMMIT
 INSERT INTO "user" VALUES(2,'Meow','Woof','Meow@woof.com')
 COMMIT
-INSERT INTO USER VALUES(595,'raavi','sdasdas','sdasdas')
+DELETE FROM USER WHERE ID=594
 COMMIT
-DELETE FROM USER WHERE ID=595
-INSERT INTO USER VALUES(595,'raavi','sdasdas','katlin@hot.ee')
+DELETE FROM USER WHERE ID=593
+INSERT INTO USER VALUES(593,'dsad','asda','dasdadsaasddddddddddddddddddddddd')
 COMMIT
-DELETE FROM USER WHERE ID=595
+INSERT INTO USER VALUES(596,'allo','allo','allo')
+COMMIT
+DELETE FROM USER WHERE ID=596
+INSERT INTO USER VALUES(596,'sadadddddddd','dssssssssssssssssssss','sssssssssssssssssssssssssssssssssssssssssssssssssss')
 COMMIT

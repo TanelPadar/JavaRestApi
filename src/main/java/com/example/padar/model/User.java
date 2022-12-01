@@ -1,13 +1,20 @@
 package com.example.padar.model;
 
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class User {
+    @Schema(example= "1" ,  description = "id", hidden = true)
+
     private int id;
+    @Schema(description = "name", example= "Jaanika")
     private String name;
+    @Schema(description = "username",example= "jaanika22")
     private String username;
+    @Schema(description = "email" ,example= "Jaanika@hot.ee")
     private String email;
 
 
@@ -23,7 +30,7 @@ public class User {
 
     }
 
-    public int getid() {
+    public int getId() {
         return id;
     }
 
@@ -39,11 +46,11 @@ public class User {
         this.name = name;
     }
 
-    public String getusername() {
+    public String getUsername() {
         return username;
     }
 
-    public void setusername(String username) {
+    public void setUsername(String username) {
         this.username = username;
     }
 
