@@ -3,6 +3,10 @@ package com.example.padar.controller;
 import com.example.padar.dao.UserDao;
 import com.example.padar.model.Kasutajad;
 import com.example.padar.model.User;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Bucket4j;
+import io.github.bucket4j.Refill;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -17,13 +21,18 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
+import java.time.Duration;
 import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RequestMapping("/")
 public class UserController {
-    private final UserDao UserDao;
 
+
+    private Bucket bucket;
+    private final UserDao UserDao;
     @Autowired
     SimpMessagingTemplate template;
 
@@ -52,6 +61,7 @@ public class UserController {
     }
 
 
+
     @PostMapping("/users")
     @Operation(
             tags = {"Create new user"},
@@ -67,12 +77,19 @@ public class UserController {
             description = "Success Response."),
     }
     )
-    public List<User> addUsers(@RequestBody User user){
-        UserDao.addUser(user);
-        template.convertAndSend("/topic/post" ,user);
-        template.convertAndSend("/topic/get" , new Kasutajad(UserDao.getAllUsers()));
-        return UserDao.showPostedUser();
+    public ResponseEntity<?> addUsers(@RequestBody User user){
+            if (bucket.tryConsume(1)) {
+                UserDao.addUser(user);
+                template.convertAndSend("/topic/post", user);
+                template.convertAndSend("/topic/get", new Kasutajad(UserDao.getAllUsers()));
+                return ResponseEntity.ok(UserDao.getAllUsers().get(UserDao.getAllUsers().size() - 1));
+
+            } else {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+            }
     }
+
+
 
     @PutMapping("/users/{id}")
     @Operation(
@@ -89,12 +106,16 @@ public class UserController {
                     description = "Success Response."),
             }
     )
-    public List<User> editUsers(@PathVariable int id,@RequestBody User user){
-        UserDao.updateUser(user,id);
-        template.convertAndSend("/topic/update", UserDao.showUpdatedUser(id));
-        return UserDao.showUpdatedUser(id);
-    }
+    public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user){
+        if (bucket.tryConsume(1)) {
+            UserDao.updateUser(user,id);
+            template.convertAndSend("/topic/update", UserDao.showUpdatedUser(id));
+            return ResponseEntity.ok( UserDao.showUpdatedUser(id).get(0));
+        } else {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
 
+    }
     @DeleteMapping("/users/{id}")
     @Operation(
             tags = {"Delete existing user"},
@@ -107,10 +128,19 @@ public class UserController {
             }
     )
     public ResponseEntity<String> deleteUsersById(@PathVariable int id){
-        UserDao.deleteUserById(id);
-        template.convertAndSend("/topic/delete", id);
-        return ResponseEntity.ok("{}");
+        if (bucket.tryConsume(1)) {
+            UserDao.deleteUserById(id);
+            template.convertAndSend("/topic/delete", id);
+            return ResponseEntity.ok("{}");
+        } else {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+    }
 
+    @PostConstruct
+    public void setupBucket() {
+        Bandwidth limit = Bandwidth.classic(3, Refill.intervally(3, Duration.ofMinutes(1)));
+        this.bucket = Bucket4j.builder().addLimit(limit).build();
     }
 
     @SendTo("/topic/get")
