@@ -37,8 +37,9 @@ public class LoggingFilter extends OncePerRequestFilter {
                 response.getCharacterEncoding());
 
         LOGGER.info(
-                "FINISHED PROCESSING : METHOD={}; REQUESTURI={}; ID={} ",
-                request.getMethod(), request.getRequestURI(), InetAddress.getLocalHost());
+                "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={};",
+                request.getMethod(), request.getRequestURI(), InetAddress.getLocalHost(),
+                requestBody.replaceAll(System.getProperty("line.separator"), ""));
         responseWrapper.copyBodyToResponse();
     }
 

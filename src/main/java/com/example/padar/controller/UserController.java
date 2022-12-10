@@ -3,6 +3,7 @@ package com.example.padar.controller;
 import com.example.padar.dao.UserDao;
 import com.example.padar.model.Kasutajad;
 import com.example.padar.model.User;
+import com.example.padar.model.Log;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Bucket4j;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
@@ -21,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpSession;
@@ -30,6 +33,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -69,17 +73,59 @@ public class UserController {
         template.convertAndSend("/topic/get" , new Kasutajad(UserDao.getAllUsers()));
         return UserDao.getAllUsers();
 
+
     }
 
 
     @GetMapping("/logs")
-    public List<String> readFileIntoListOfWords() {
+    public List<Log> readFileIntoListOfWords() {
         try {
-            return Files.readAllLines(Paths.get("C:\\Users\\padar\\Desktop\\SpringBootCrud-main\\logs\\hzServer.json"))
-                    .stream()
-                    .map(l -> l.split(" "))
-                    .flatMap(Arrays::stream)
-                    .collect(Collectors.toList());
+            List<Log> logs = new ArrayList<>();
+
+            Pattern processing_pattern = Pattern.compile("FINISHED PROCESSING");
+            Pattern id_pattern = Pattern.compile("((?<=ID=)(\\S*(?=;)))");
+            Pattern endpoint_pattern = Pattern.compile("(?<=REQUESTURL=)(\\S*(?=;))");
+            Pattern method_pattern = Pattern.compile("(?<=METHOD=)(\\S*(?=;))");
+            Pattern name_pattern = Pattern.compile("(?<=name\":\")(\\S*(?=\",\"username))");
+            Pattern username_pattern = Pattern.compile("(?<=username\":\")(\\S*(?=\",\"email))");
+            Pattern email_pattern = Pattern.compile("(?<=email\":\")(\\S*(?=\"}))");
+            Pattern date_pattern = Pattern.compile("\\d+-\\d+-\\d+ \\d+:\\d+:\\d+.\\d+");
+
+            for (String line : Files.readAllLines(Paths.get("logs/hzServer.log"))) {
+                Matcher processing_matcher = processing_pattern.matcher(line);
+                if (processing_matcher.find()) {
+                    Matcher method_matcher = method_pattern.matcher(line);
+                    if (method_matcher.find() && method_matcher.group(0).matches("POST|DELETE|PUT")) {
+                        Log log = new Log();
+                        log.setMethod(method_matcher.group(0));
+
+                        Matcher id_matcher = id_pattern.matcher(line);
+                        Matcher endpoint_matcher = endpoint_pattern.matcher(line);
+                        Matcher date_matcher = date_pattern.matcher(line);
+                        Matcher name_matcher = name_pattern.matcher(line);
+                        Matcher username_matcher = username_pattern.matcher(line);
+                        Matcher email_matcher = email_pattern.matcher(line);
+
+                        if (id_matcher.find()) log.setId(id_matcher.group(0));
+                        if (endpoint_matcher.find()) log.setEndpoint(endpoint_matcher.group(0));
+                        if (date_matcher.find()) log.setDate(date_matcher.group(0));
+                        if (date_matcher.find()) log.setDate(date_matcher.group(0));
+                        if (name_matcher.find() && username_matcher.find() && email_matcher.find()) {
+                            log.setBody(
+                                    name_matcher.group(0),
+                                    username_matcher.group(0),
+                                    email_matcher.group(0)
+                            );
+                        } else {
+                            log.setBody("", "", "");
+                        }
+
+
+                        logs.add(log);
+                    }
+                }
+            }
+            return logs;
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -87,11 +133,7 @@ public class UserController {
         return  Collections.emptyList();
     }
 
-
-
-
-
-        @PostMapping("/users")
+    @PostMapping("/users")
     @Operation(
             tags = {"Create new user"},
             responses = {@ApiResponse(responseCode = "200",
@@ -112,7 +154,6 @@ public class UserController {
             UserDao.addUser(user);
             template.convertAndSend("/topic/post", user);
             template.convertAndSend("/topic/get", new Kasutajad(UserDao.getAllUsers()));
-            LOG.info("POST:" + sessionId + "-" + "/USERS");
             return ResponseEntity.ok(UserDao.getAllUsers().get(UserDao.getAllUsers().size() - 1));
 
         } else {
@@ -135,6 +176,8 @@ public class UserController {
                     description = "Success Response."),
             }
     )
+
+
     public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user, HttpSession session){
         String sessionId = session.getId();
         if (bucket.tryConsume(1)) {
