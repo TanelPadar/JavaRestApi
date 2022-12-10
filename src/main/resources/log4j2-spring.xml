@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+    <Appenders>
+        <JSONLayout complete="true" compact="true" eventEol="true" objectMessageAsJsonObject="true" />
+
+        <RollingRandomAccessFile name="HzServer"
+                                 filename="logs/hzServer.json" immediateFlush="false" append="true"
+                                 filepattern="logs/hzServer.log-%d{MM-dd-yyyy}">
+            <JSONLayout compact="true" eventEol="true" properties="true" stacktraceAsString="true" includeTimeMillis="true">
+                <!--  Project properties -->
+
+            </JSONLayout>
+            <SizeBasedTriggeringPolicy size="10 MB" />
+            <DefaultRolloverStrategy max="10"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="20" />
+        </RollingRandomAccessFile>
+
+    </Appenders>
+    <Loggers>
+        <Logger name="com.example" level="debug" includeLocation="true"
+                additivity="false">
+            <AppenderRef ref="HzServer" />
+
+        </Logger>
+    </Loggers>
+</Configuration>
