@@ -18,6 +18,15 @@ public class User {
     private String email;
 
 
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                '}';
+    }
 
     public User(int id, String name, String username, String email) {
         this.id = id;

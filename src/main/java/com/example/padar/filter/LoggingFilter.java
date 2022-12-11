@@ -9,6 +9,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.example.padar.dao.UserDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,7 @@ public class LoggingFilter extends OncePerRequestFilter {
 
         LOGGER.info(
                 "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={};",
-                request.getMethod(), request.getRequestURI(), InetAddress.getLocalHost(),
+                request.getMethod(), request.getRequestURI(), request.getSession().getId() ,
                 requestBody.replaceAll(System.getProperty("line.separator"), ""));
         responseWrapper.copyBodyToResponse();
     }

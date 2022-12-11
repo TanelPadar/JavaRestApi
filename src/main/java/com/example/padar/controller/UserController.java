@@ -1,6 +1,7 @@
 package com.example.padar.controller;
 
 import com.example.padar.dao.UserDao;
+import com.example.padar.filter.LoggingFilter;
 import com.example.padar.model.Kasutajad;
 import com.example.padar.model.User;
 import com.example.padar.model.Log;
@@ -15,6 +16,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import org.apache.tomcat.util.json.JSONParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.http.HttpStatus;
@@ -32,7 +35,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,7 +46,7 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private Bucket bucket;
-    private static final Logger LOG = Logger.getLogger("com.example");
+    private static final Logger LOG = LoggerFactory.getLogger(LoggingFilter.class);
     private final UserDao UserDao;
     @Autowired
     SimpMessagingTemplate template;
@@ -72,8 +74,6 @@ public class UserController {
     public List<User> getAllUsers() {
         template.convertAndSend("/topic/get" , new Kasutajad(UserDao.getAllUsers()));
         return UserDao.getAllUsers();
-
-
     }
 
 
@@ -119,8 +119,6 @@ public class UserController {
                         } else {
                             log.setBody("", "", "");
                         }
-
-
                         logs.add(log);
                     }
                 }
@@ -150,7 +148,6 @@ public class UserController {
     )
     public ResponseEntity<?> addUsers(@RequestBody User user, HttpSession session){
         if (bucket.tryConsume(1)) {
-            String sessionId = session.getId();
             UserDao.addUser(user);
             template.convertAndSend("/topic/post", user);
             template.convertAndSend("/topic/get", new Kasutajad(UserDao.getAllUsers()));
@@ -179,11 +176,10 @@ public class UserController {
 
 
     public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user, HttpSession session){
-        String sessionId = session.getId();
         if (bucket.tryConsume(1)) {
+            LOG.debug(UserDao.showUpdatedUser(id).get(0).toString());
             UserDao.updateUser(user,id);
             template.convertAndSend("/topic/update", UserDao.showUpdatedUser(id));
-            LOG.info("PUT:" + sessionId + "-" + "/USERS");
             return ResponseEntity.ok( UserDao.showUpdatedUser(id).get(0));
         } else {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();

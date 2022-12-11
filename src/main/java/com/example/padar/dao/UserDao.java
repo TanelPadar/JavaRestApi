@@ -43,7 +43,7 @@ public class UserDao {
     }
 
 
-    public User updateUser(User user,int id) {
+    public User updateUser(User user, int id) {
         jdbcTemplate.update(SQL_UPDATE_USER,
                 user.getName(),
                 user.getUsername(),
