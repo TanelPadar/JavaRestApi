@@ -5,17 +5,19 @@ public class Log {
     private String endpoint;
     private String method;
     private RequestBody body;
+    private RequestBody oldBody;
     private String date;
 
-    public Log(String id, String endpoint, String method, RequestBody body, String date) {
+    public Log(String id, String endpoint, String method, RequestBody body, RequestBody oldBody, String date) {
         this.id = id;
         this.endpoint = endpoint;
         this.method = method;
         this.body = body;
+        this.oldBody = oldBody;
         this.date = date;
     }
 
-    public Log() {}
+    public Log() { }
 
     public String getId() {
         return id;
@@ -49,12 +51,25 @@ public class Log {
         this.body = new RequestBody(name, username, email);
     }
 
+    public RequestBody getOldBody() {
+        return oldBody;
+    }
+
+    public void setOldBody(String name, String username, String email) {
+        this.oldBody = new RequestBody(name, username, email);
+    }
+
     public String getDate() {
         return date;
     }
 
     public void setDate(String date) {
         this.date = date;
+    }
+
+    public void fillNullFields() {
+        if (this.body == null) this.setBody("", "", "");
+        if (this.oldBody == null) this.setOldBody("", "", "");
     }
 }
 

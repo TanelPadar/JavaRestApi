@@ -15,7 +15,7 @@ public class UserDao {
 
     private static final String SQL_GET_ALL_USERS = "SELECT * FROM user";
 
-    private static final String SQL_GET_UPDATED_USER = "SELECT * FROM user where id = ?";
+    private static final String SQL_GET_USER_BY_ID = "SELECT * FROM user where id = ?";
 
     private static final String SQL_GET_POSTED_USER = "SELECT * FROM user ORDER BY id DESC LIMIT 1 ";
 
@@ -32,7 +32,7 @@ public class UserDao {
         jdbcTemplate.update(SQL_DELETE_USER_BY_ID, id);
     }
 
-    public List<User> showUpdatedUser(int id) {return jdbcTemplate.query(SQL_GET_UPDATED_USER,new UserMapper(),id); }
+    public List<User> getUserById(int id) {return jdbcTemplate.query(SQL_GET_USER_BY_ID,new UserMapper(),id); }
     public List<User> showPostedUser() {return jdbcTemplate.query(SQL_GET_POSTED_USER,new UserMapper()); }
 
     public void addUser(User user) {

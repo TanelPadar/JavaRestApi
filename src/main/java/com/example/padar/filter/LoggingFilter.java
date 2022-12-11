@@ -37,10 +37,12 @@ public class LoggingFilter extends OncePerRequestFilter {
         String responseBody = getStringValue(responseWrapper.getContentAsByteArray(),
                 response.getCharacterEncoding());
 
-        LOGGER.info(
-                "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={};",
-                request.getMethod(), request.getRequestURI(), request.getSession().getId() ,
-                requestBody.replaceAll(System.getProperty("line.separator"), ""));
+        if (!request.getMethod().matches("PUT|GET"))
+            LOGGER.info(
+                    "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={};",
+                    request.getMethod(), request.getRequestURI(), request.getSession().getId() ,
+                    requestBody.replaceAll(System.getProperty("line.separator"), ""));
+
         responseWrapper.copyBodyToResponse();
     }
 
@@ -55,3 +57,4 @@ public class LoggingFilter extends OncePerRequestFilter {
     }
 
 }
+

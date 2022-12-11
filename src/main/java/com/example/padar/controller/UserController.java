@@ -29,6 +29,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.*;
 import java.nio.file.Files;
@@ -106,19 +107,26 @@ public class UserController {
                         Matcher username_matcher = username_pattern.matcher(line);
                         Matcher email_matcher = email_pattern.matcher(line);
 
-                        if (id_matcher.find()) log.setId(id_matcher.group(0));
-                        if (endpoint_matcher.find()) log.setEndpoint(endpoint_matcher.group(0));
-                        if (date_matcher.find()) log.setDate(date_matcher.group(0));
-                        if (date_matcher.find()) log.setDate(date_matcher.group(0));
-                        if (name_matcher.find() && username_matcher.find() && email_matcher.find()) {
-                            log.setBody(
-                                    name_matcher.group(0),
-                                    username_matcher.group(0),
-                                    email_matcher.group(0)
-                            );
-                        } else {
-                            log.setBody("", "", "");
+                        if (id_matcher.find()) log.setId(id_matcher.group());
+                        if (endpoint_matcher.find()) log.setEndpoint(endpoint_matcher.group());
+                        if (date_matcher.find()) log.setDate(date_matcher.group());
+                        if (date_matcher.find()) log.setDate(date_matcher.group());
+                        while (name_matcher.find() && username_matcher.find() && email_matcher.find()) {
+                            if (log.getBody() == null)
+                                log.setBody(
+                                        name_matcher.group(),
+                                        username_matcher.group(),
+                                        email_matcher.group()
+                                );
+                            else {
+                                log.setOldBody(
+                                        name_matcher.group(),
+                                        username_matcher.group(),
+                                        email_matcher.group()
+                                );
+                            }
                         }
+                        log.fillNullFields();
                         logs.add(log);
                     }
                 }
@@ -175,12 +183,15 @@ public class UserController {
     )
 
 
-    public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user, HttpSession session){
+    public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user, @Autowired HttpServletRequest request){
         if (bucket.tryConsume(1)) {
-            LOG.debug(UserDao.showUpdatedUser(id).get(0).toString());
+            LOG.info(
+                    "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={}; OLDUSER={};",
+                    request.getMethod(), request.getRequestURI(), request.getSession().getId(),
+                    user.toString(), UserDao.getUserById(id).get(0).toString());
             UserDao.updateUser(user,id);
-            template.convertAndSend("/topic/update", UserDao.showUpdatedUser(id));
-            return ResponseEntity.ok( UserDao.showUpdatedUser(id).get(0));
+            template.convertAndSend("/topic/update", UserDao.getUserById(id));
+            return ResponseEntity.ok( UserDao.getUserById(id).get(0));
         } else {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
