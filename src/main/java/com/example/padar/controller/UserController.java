@@ -1,10 +1,11 @@
 package com.example.padar.controller;
 
+import com.example.padar.config.FileConfig;
 import com.example.padar.dao.UserDao;
 import com.example.padar.filter.LoggingFilter;
 import com.example.padar.model.Kasutajad;
-import com.example.padar.model.User;
 import com.example.padar.model.Log;
+import com.example.padar.model.User;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Bucket4j;
@@ -14,31 +15,32 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-
-import org.apache.tomcat.util.json.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 
 @RestController
@@ -46,14 +48,16 @@ import java.util.stream.Collectors;
 @RequestMapping("/")
 public class UserController {
 
-    private Bucket bucket;
     private static final Logger LOG = LoggerFactory.getLogger(LoggingFilter.class);
-    private final UserDao UserDao;
     @Autowired
     SimpMessagingTemplate template;
+    private Bucket bucket;
+    @Autowired
+    private UserDao userDao;
+    @Autowired
+    private FileConfig fileConfig;
 
-    public UserController(UserDao UserDao) {
-        this.UserDao = UserDao;
+    public UserController() {
     }
 
     @GetMapping("/users")
@@ -61,8 +65,8 @@ public class UserController {
             tags = {"Get all users"},
             responses = {@ApiResponse(responseCode = "200",
                     content = @Content(schema =
-                    @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = {@ExampleObject(name = "", value="{\n" +
+                    @Schema(implementation = User.class), mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value = "{\n" +
                                     "        \"id\": 586,\n" +
                                     "        \"name\": \"tanel\",\n" +
                                     "        \"username\": \"tanel\",\n" +
@@ -71,15 +75,14 @@ public class UserController {
                     description = "Success Response."),
             }
     )
-
     public List<User> getAllUsers() {
-        template.convertAndSend("/topic/get" , new Kasutajad(UserDao.getAllUsers()));
-        return UserDao.getAllUsers();
+        template.convertAndSend("/topic/get", new Kasutajad(userDao.getAllUsers()));
+        return userDao.getAllUsers();
     }
 
 
     @GetMapping("/logs")
-    public List<Log> readFileIntoListOfWords() {
+    public List<Log> getLogs() {
         try {
             List<Log> logs = new ArrayList<>();
 
@@ -92,7 +95,7 @@ public class UserController {
             Pattern email_pattern = Pattern.compile("(?<=email\":\")(\\S*(?=\"}))");
             Pattern date_pattern = Pattern.compile("\\d+-\\d+-\\d+ \\d+:\\d+:\\d+.\\d+");
 
-            for (String line : Files.readAllLines(Paths.get("logs/hzServer.log"))) {
+            for (String line : Files.readAllLines(fileConfig.getLogsFilePath())) {
                 Matcher processing_matcher = processing_pattern.matcher(line);
                 if (processing_matcher.find()) {
                     Matcher method_matcher = method_pattern.matcher(line);
@@ -126,17 +129,16 @@ public class UserController {
                                 );
                             }
                         }
-                        log.fillNullFields();
+                        if (log.getOldBody() != null) log.distinctBody();
                         logs.add(log);
                     }
                 }
             }
             return logs;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        return  Collections.emptyList();
+        return Collections.emptyList();
     }
 
     @PostMapping("/users")
@@ -144,8 +146,8 @@ public class UserController {
             tags = {"Create new user"},
             responses = {@ApiResponse(responseCode = "200",
                     content = @Content(schema =
-                    @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = {@ExampleObject(name = "", value="{\n" +
+                    @Schema(implementation = User.class), mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value = "{\n" +
                                     "        \"id\": 586,\n" +
                                     "        \"name\": \"tanel\",\n" +
                                     "        \"username\": \"tanel\",\n" +
@@ -154,12 +156,12 @@ public class UserController {
                     description = "Success Response."),
             }
     )
-    public ResponseEntity<?> addUsers(@RequestBody User user, HttpSession session){
+    public ResponseEntity<?> addUsers(@RequestBody User user, HttpSession session) {
         if (bucket.tryConsume(1)) {
-            UserDao.addUser(user);
+            userDao.addUser(user);
             template.convertAndSend("/topic/post", user);
-            template.convertAndSend("/topic/get", new Kasutajad(UserDao.getAllUsers()));
-            return ResponseEntity.ok(UserDao.getAllUsers().get(UserDao.getAllUsers().size() - 1));
+            template.convertAndSend("/topic/get", new Kasutajad(userDao.getAllUsers()));
+            return ResponseEntity.ok(userDao.getAllUsers().get(userDao.getAllUsers().size() - 1));
 
         } else {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
@@ -171,8 +173,8 @@ public class UserController {
             tags = {"Edit existing user"},
             responses = {@ApiResponse(responseCode = "200",
                     content = @Content(schema =
-                    @Schema(implementation =  User.class),mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = {@ExampleObject(name = "", value="{\n" +
+                    @Schema(implementation = User.class), mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {@ExampleObject(name = "", value = "{\n" +
                                     "        \"id\": 586,\n" +
                                     "        \"name\": \"tanel\",\n" +
                                     "        \"username\": \"tanel\",\n" +
@@ -183,20 +185,27 @@ public class UserController {
     )
 
 
-    public ResponseEntity<?> editUsers(@PathVariable int id,@RequestBody User user, @Autowired HttpServletRequest request){
+    public ResponseEntity<?> editUsers(@PathVariable int id, @RequestBody User user, @Autowired HttpServletRequest request) {
         if (bucket.tryConsume(1)) {
             LOG.info(
                     "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={}; OLDUSER={};",
                     request.getMethod(), request.getRequestURI(), request.getSession().getId(),
-                    user.toString(), UserDao.getUserById(id).get(0).toString());
-            UserDao.updateUser(user,id);
-            template.convertAndSend("/topic/update", UserDao.getUserById(id));
-            return ResponseEntity.ok( UserDao.getUserById(id).get(0));
-        } else {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+                    user.toString(), userDao.getUserById(id).get(0).toString());
+            if (userDao.updateUser(user, id) == 1) {
+                user.setid(id);
+                template.convertAndSend("/topic/update", List.of(user));
+                return ResponseEntity.ok(user);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
+            }
         }
-
+        else {
+                return new ResponseEntity<>("Too many requests. Please try again later.", HttpStatus.TOO_MANY_REQUESTS);
+        }
     }
+
+
+    @Secured("ADMIN")
     @DeleteMapping("/users/{id}")
     @Operation(
             tags = {"Delete existing user"},
@@ -208,10 +217,18 @@ public class UserController {
                     description = "Success Response.")
             }
     )
-    public ResponseEntity<String> deleteUsersById(@PathVariable int id){
-        UserDao.deleteUserById(id);
-        template.convertAndSend("/topic/delete", id);
-        return ResponseEntity.ok("{}");
+    public ResponseEntity<?> deleteUsersById(@PathVariable int id) {
+        if (bucket.tryConsume(1)) {
+            if (userDao.deleteUserById(id) == 1) {
+                template.convertAndSend("/topic/delete", id);
+                return ResponseEntity.ok("{}");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+        }
+        else {
+            return new ResponseEntity<>("Too many requests. Please try again later.", HttpStatus.TOO_MANY_REQUESTS);
+        }
     }
 
     @PostConstruct
@@ -221,8 +238,9 @@ public class UserController {
     }
 
     @SendTo("/topic/get")
-    public Kasutajad broadcastGet(@Payload  Kasutajad Kasutajad) {;
-        return  Kasutajad;
+    public Kasutajad broadcastGet(@Payload Kasutajad Kasutajad) {
+        ;
+        return Kasutajad;
     }
 
     @SendTo("/topic/post")
@@ -240,7 +258,6 @@ public class UserController {
     public User broadcastUpdate(@Payload User user) {
         return user;
     }
-
 
 
 }

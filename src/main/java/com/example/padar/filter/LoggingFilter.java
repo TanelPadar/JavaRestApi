@@ -9,7 +9,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.example.padar.dao.UserDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,19 +32,19 @@ public class LoggingFilter extends OncePerRequestFilter {
         long timeTaken = System.currentTimeMillis() - startTime;
 
         String requestBody = getStringValue(requestWrapper.getContentAsByteArray(),
-                request.getCharacterEncoding());
+                request.getCharacterEncoding())
+                .replaceAll(System.getProperty("line.separator"), "")
+                .replaceAll(" ", "");
         String responseBody = getStringValue(responseWrapper.getContentAsByteArray(),
                 response.getCharacterEncoding());
 
         if (!request.getMethod().matches("PUT|GET"))
             LOGGER.info(
                     "FINISHED PROCESSING : METHOD={}; REQUESTURL={}; ID={}; REQUESTBODY={};",
-                    request.getMethod(), request.getRequestURI(), request.getSession().getId() ,
-                    requestBody.replaceAll(System.getProperty("line.separator"), ""));
+                    request.getMethod(), request.getRequestURI(), request.getSession().getId(), requestBody);
 
         responseWrapper.copyBodyToResponse();
     }
-
 
     private String getStringValue(byte[] contentAsByteArray, String characterEncoding) {
         try {
